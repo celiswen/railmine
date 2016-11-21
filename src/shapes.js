@@ -6,6 +6,7 @@ const Crafty = require('craftyjs');
 const scale = require('./util').scale;
 const rotate = require('./util').rotate;
 const deg = require('./util').deg;
+const deg2rad = require('./util').deg;
 const center = require('./util').center;
 const depth = require('./util').depth;
 
@@ -135,6 +136,29 @@ Crafty.c('NodeGraphic', {
         this.color('#1d63ff');
         this.z = 10;
     },
+});
+
+Crafty.c('CoinGraphic', {
+    required: 'Shape',
+    init () {
+        let side = 16;
+        this.shape(_.times(side, i => {
+            return rotate([0.3, 0], deg2rad(i/side * 360));
+        }));
+        this.color('#eccf35');
+        this.z = 50;
+    }
+});
+
+Crafty.c('ClockGraphic', {
+    required: 'Shape',
+    init () {
+        let side = 16;
+        this.shape([[0, -0.3], [0, -0.4], [0, 0], [0, -0.3]].concat(_.times(side, i => {
+            return rotate([0, -0.3], deg2rad(i/side * 360));
+        })));
+        this.z = 50;
+    }
 });
 
 let boundingRect = function (r1, r2) {

@@ -4,66 +4,75 @@ const _ = require('underscore');
 const Crafty = require('craftyjs');
 
 const util = require('./util');
+const levelJson = require('./level');
 require('./grid');
 require('./shapes');
+require('./ui');
 require('./entities');
 
 Crafty.init(500, 500, 'stage');
+Crafty.viewport.clampToEntities = false;
 
 Crafty.background("#f1eded");
 Crafty.e('Grid')
-    .attr({x: -50, y: -50, w: 600, h: 600})
+    .attr({x: -300, y: -700, w: 3000, h: 1000})
     .grid(50, 50);
 
-Crafty.e('Sentinel')
-    .sentinel({detectRange: 150, color: '#000000', speed: 100})
-    .centerAt({x: 400, y: 50});
+let deepCopy = function (obj) {
+    return JSON.parse(JSON.stringify(obj));
+};
 
-Crafty.e('Ore')
-    .ore({size: 1.5, weight: 40, value: 10, color: 'red'})
-    .centerAt({x: 100, y: 400});
+let levelBuilder = function (levelJson) {
+    let nodes = deepCopy(levelJson.map.nodes);
+    _.each(nodes, ([x, y], name) => {
+        nodes[name] = Crafty.e('Node').attr({x, y});
+    });
 
-let node1 = Crafty.e('Node')
-    .setName('node1')
-    .attr({x: 100, y: 200});
+    let paths = levelJson.map.paths;
+    _.each(paths, (connections, node) => {
+        _.each(connections, target => {
+            nodes[node].connect(nodes[target]);
+        });
+    });
 
-let node2 = Crafty.e('Node')
-    .setName('node2')
-    .attr({x: 200, y: 300});
+    let ores = levelJson.map.ores;
+    _.each(ores, ore => {
+        Crafty.e('Ore').ore(ore).centerAt(ore.at);
+    });
 
-let node3 = Crafty.e('Node')
-    .setName('node3')
-    .attr({x: 350, y: 250});
+    let sentinels = levelJson.map.sentinels;
+    _.each(sentinels, sentinel => {
+        Crafty.e('Sentinel').sentinel(sentinel).centerAt(sentinel.at);
+    });
 
-let node4 = Crafty.e('Node')
-    .setName('node4')
-    .attr({x: 350, y: 100});
+    let ship = Crafty.e('Ship')
+        .ship(levelJson.player.ship)
+        .startAt(nodes[_.sample(levelJson.map.start)]);
 
-let node5 = Crafty.e('Node')
-    .setName('node5')
-    .attr({x: 300, y: 350});
+    let hook = Crafty.e('Hook')
+        .hook(levelJson.player.hook)
+        .attachTo(ship);
 
-node1.connect(node2);
-node2.connect(node3);
-node2.connect(node4);
-node2.connect(node5);
+    Crafty.viewport.follow(ship);
 
-node4.connect(node1);
-node3.connect(node4);
-node5.connect(node3);
 
-// node3.connect(node5);
+    let ui = Crafty.e('Static');
+    let y = 0;
+    _.each(levelJson.goal, (data, type) => {
+        let comp = `${util.capitalize(type)}Goal`;
+        ui.attach(Crafty.e(comp).goal(data).attr({y}));
+        y += 50;
+    });
+    ui.fixedAt({x: 0, y: 0});
 
-let ship = Crafty.e('Ship')
-    .attr({x: 200, y: 200})
-    .origin('center');
+    setInterval(function () {
+        _.each(nodes, n => n.switchPath());
+    }, 1000);
+};
 
-let hook = Crafty.e('Hook')
-    .attr({x: 200, y: 200})
-    .attachTo(ship);
+Crafty.bind('GetOre', ({type}) => console.log('get ore ' + type));
+Crafty.bind('GetCoins', ({value}) => console.log('get money ' + value));
 
-ship.startAt(node1);
+levelBuilder(levelJson);
 
-setInterval(function () {
-    node2.switchPath();
-}, 1000);
+// Crafty.viewport.scale(0.5);

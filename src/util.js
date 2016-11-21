@@ -15,6 +15,7 @@ exports.scale = ([x, y], rx, ry) => [x*rx, y*ry];
 
 exports.center = e => [e.x + e.w/2, e.y + e.h/2];
 
+exports.capitalize = str => str[0].toUpperCase() + str.slice(1);
 
 const vec2 = exports.vec2 = {
     add (v1, v2) {

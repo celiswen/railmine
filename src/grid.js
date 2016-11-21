@@ -26,8 +26,8 @@ Crafty.c('Grid', {
         return this;
     },
     _drawGrid ({ctx, pos, co}) {
-        let horizLineCount = ~~(pos._h / this._gridHeight) + 1;
-        let vertiLineCount = ~~(pos._w / this._gridWidth) + 1;
+        let horizLineCount = ~~(pos._w / this._gridWidth) + 1;
+        let vertiLineCount = ~~(pos._h / this._gridHeight) + 1;
 
         ctx.save();
         ctx.translate(pos._x, pos._y);
@@ -36,22 +36,24 @@ Crafty.c('Grid', {
         ctx.strokeStyle = this._color;
         ctx.fillStyle = this._color;
 
-        // draw the lines
+        // draw the vertical lines
         ctx.beginPath();
         _.times(horizLineCount, i => {
-            ctx.moveTo(0, i * this._gridHeight);
-            ctx.lineTo(pos._h, i * this._gridHeight);
+            ctx.moveTo(i * this._gridWidth, 0);
+            ctx.lineTo(i * this._gridWidth, pos._h);
         });
+
+        // draw the horizonal lines
         _.times(vertiLineCount, j => {
-            ctx.moveTo(j * this._gridWidth, 0);
-            ctx.lineTo(j * this._gridWidth, pos._w);
+            ctx.moveTo(0     , j * this._gridHeight);
+            ctx.lineTo(pos._w, j * this._gridHeight);
         });
         ctx.stroke();
 
         // draw the dots
         ctx.beginPath();
-        _.times(vertiLineCount, i => {
-            _.times(horizLineCount, j => {
+        _.times(horizLineCount, i => {
+            _.times(vertiLineCount, j => {
                 ctx.moveTo(i * this._gridWidth, j * this._gridHeight);
                 ctx.arc(i * this._gridWidth,
                         j * this._gridHeight,

@@ -2,6 +2,7 @@
 /*jshint browser: true */
 const _ = require('underscore');
 const Crafty = require('craftyjs');
+const assert = require('assert');
 
 const util = require('./util');
 require('./shapes');
@@ -95,7 +96,7 @@ const shipHitBox = function () {
 
 
 Crafty.c('Ship', {
-    required: '2D, Keyboard, Collision, SolidHitBox',
+    required: '2D, Keyboard, Collision',
     init () {
         this._accelerator = 60;
         this._brake = -150;
@@ -109,7 +110,14 @@ Crafty.c('Ship', {
         this._position = {node: undefined, next: undefined, offset: 0};
         this._shipGraphic = Crafty.e('ShipGraphic')
             .attr({x: this.x - 50, y: this.y - 25, w: 100, h: 50});
+        this.origin('center');
         this.attach(this._shipGraphic);
+    },
+    ship ({accelerator, brake, speedLimit}) {
+        this._accelerator = accelerator;
+        this._brake = brake;
+        this._speedLimit = speedLimit;
+        return this;
     },
     startAt (node) {
         this._position = {node: node, next: node.nextNode(), offset: 0};
@@ -117,7 +125,7 @@ Crafty.c('Ship', {
         return this;
     },
     _move (step) {
-        if (this._position.next === undefined) return;
+        if (this._hasStopped()) return;
         let {node, next, offset} = this._position = advance(this._position, step);
         if (next === undefined) return;
         let [x, y] = vec2.add(node, vec2.valueLerp(node, next, offset));
@@ -125,15 +133,21 @@ Crafty.c('Ship', {
     },
     _alignTrack () {
         /*jshint expr: true */
-        if (this._position.next !== undefined) {
+        if (!this._hasStopped()) {
             let [x, y] = vec2.valueLerp(this._position.node, this._position.next, 1);
             this.rotation = util.rad(Math.atan2(y, x));
             expect(this.rotation).to.be.not.NaN;
         }
     },
+    _hasStopped () {
+        return this._position.next === undefined;
+    },
     advance (step) {
         this._move(step);
         this._alignTrack();
+        if (this._hasStopped()) {
+            Crafty.trigger('ShipStop');
+        }
     },
 
     events: {
@@ -143,9 +157,6 @@ Crafty.c('Ship', {
             this._v = Math.max(0, Math.min(this._speedLimit, this._v));
             this.advance(this._v * dt/1000);
         },
-        Death () {
-            console.log('gameover!');
-        }
     }
 });
 
@@ -154,13 +165,14 @@ const hookHitBox = function (hookEntity) {
 };
 
 Crafty.c('Hook', {
-    required: '2D, Mouse, Collision, SolidHitBox',
+    required: '2D, Mouse, Collision',
     init () {
         this._launchSpeed = 150;
         this._reachLimit = 150;
 
         this._depth = 0;
         this._hookState = 0;
+        this._oreGrabbed = null;
 
         this.collision(hookHitBox(this));
 
@@ -177,6 +189,11 @@ Crafty.c('Hook', {
         this._hookGraphic = Crafty.e('HookGraphic')
             .attr({x: this.x - 25, y: this.y - 25, w: 50, h: 50});
         this.attach(this._hookGraphic);
+    },
+    hook ({launchSpeed, reachLimit}) {
+        this._launchSpeed = launchSpeed;
+        this._reachLimit = reachLimit;
+        return this;
     },
     _setHookPosition (depth) {
         let angle = util.deg2rad(this.rotation);
@@ -210,7 +227,12 @@ Crafty.c('Hook', {
     },
     events: {
         EnterFrame ({dt}) {
-            let dis = this._depth + this._launchSpeed * this._hookState * dt/1000;
+            let launchSpeed = this._launchSpeed;
+            if (this._oreGrabbed) {
+                launchSpeed *= this._oreGrabbed._weight;
+            }
+
+            let dis = this._depth + launchSpeed * this._hookState * dt/1000;
             if (dis >= this._reachLimit) {
                 this._setHookPosition(this._reachLimit);
                 this._hookState = -1;
@@ -233,18 +255,19 @@ const oreHitBox = function (oreEntity) {
 };
 
 Crafty.c('Ore', {
-    required: 'AngularMotion, OreGraphic, Collision, SolidHitBox',
+    required: 'AngularMotion, OreGraphic, Collision',
     init () {
     },
-    ore ({size, weight, value, color}) {
+    ore ({size, weight, value, color, type}) {
         this._size = size;
         this._weight = weight;
         this._value = value;
+        this._type = type;
 
         this.attr({w: 50 * size, h: 50 * size});
         this.origin('center');
         this.color(color);
-        this.vrotation = 40 * (100 - weight)/100;
+        this.vrotation = 40 * this._weight;
         this.collision(oreHitBox(this));
         this.checkHits("Hook");
 
@@ -256,11 +279,18 @@ Crafty.c('Ore', {
     events: {
         HitOn (hits) {
             let {obj: hook} = hits[0];
+            if (hook._oreGrabbed) return;
+
             hook.attach(this);
+            hook._hookState = -1;
+            hook._oreGrabbed = this;
             this.centerAt({x: hook.x, y: hook.y});
             this.vrotation = 0;
-            hook._hookState = -1;
+
             hook.one('HookReturn', () => {
+                Crafty.trigger('GetOre', {type: this._type});
+                Crafty.trigger('GetCoins', {value: this._value});
+                hook._oreGrabbed = null;
                 hook.detach(this);
                 this.destroy();
             });
@@ -297,22 +327,25 @@ Crafty.c('Sentinel', {
             let target = [ship.x, ship.y];
             let senti = [this.x + this.w/2, this.y + this.h/2];
             if (vec2.lengthTo(senti, target) <= this._detectRange) {
-                let [vx, vy] = vec2.mul(vec2.valueLerp(senti, target, 1), this._speed);
-                this.vx = vx;
-                this.vy = vy;
+                let speedVec = vec2.valueLerp(senti, target, 1);
+                [this.vx, this.vy] = vec2.mul(speedVec, this._speed);
                 this.vrotation = 360;
             } else {
-                this.vx = 0;
-                this.vy = 0;
-                this.vrotation = 0;
+                this.vx = this.vy = this.vrotation = 0;
             }
         },
         HitOn (hits) {
             let {obj} = hits[0];
+
             if (obj.has('Ship')) {
-                obj.trigger('Death');
+                Crafty.trigger('GameOver');
+                this.destroy();
+            } else if (obj.has('Hook')) {
+                if (obj._hookState != 1) return;
+                this.destroy();
+            } else {
+                assert(false);
             }
-            this.destroy();
         }
     }
 });
