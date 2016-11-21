@@ -5,7 +5,7 @@ const Crafty = require('craftyjs');
 
 
 Crafty.c('Grid', {
-    required: '2D, Canvas',
+    required: '2D, Canvas, Mouse',
     init () {
         this._gridWidth = 50;
         this._gridHeight = 50;
@@ -14,14 +14,15 @@ Crafty.c('Grid', {
         this._lineWidth = 1;
         this._lineDash = 5;
         this._lineDashEmpty = 5;
-        this.ready = true;
 
+        this.ready = true;
         this.bind('Draw', this._drawGrid);
         this.trigger('Invalidate');
     },
     grid (gridWidth, gridHeight) {
         this._gridWidth = gridWidth;
         this._gridHeight = gridHeight;
+        this.trigger('Invalidate');
         return this;
     },
     _drawGrid ({ctx, pos, co}) {

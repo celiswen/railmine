@@ -6,6 +6,9 @@ const Crafty = require('craftyjs');
 const scale = require('./util').scale;
 const rotate = require('./util').rotate;
 const deg = require('./util').deg;
+const center = require('./util').center;
+const depth = require('./util').depth;
+
 
 Crafty.c('Shape', {
     required: '2D, Canvas',
@@ -16,16 +19,20 @@ Crafty.c('Shape', {
         this._borderWidth = 4;
         this._polygon = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
 
+        this.z = 10;
+        this.origin('center');
         this.ready = true;
         this.bind('Draw', this._drawShape);
         this.trigger('Invalidate');
     },
     shape (polygon) {
         this._polygon = polygon;
+        this.trigger('Invalidate');
         return this;
     },
     color (color) {
         this._shapeColor = color;
+        this.trigger('Invalidate');
         return this;
     },
     _drawShape ({ctx, pos, co}) {
@@ -96,23 +103,100 @@ Crafty.c('ShipGraphic', {
 });
 
 const hookModel = (() => {
-    let thickness = 0.1;
-    let width = 0.4;
+    let thickness = 0.05;
+    let width = 0.3;
     let front = -0.4;
-    let mid = 0;
-    let back = 0.45;
-    return [[0, back],
-            [-width, mid], [-width, front],
-            [-width + thickness, front], [-width + thickness, mid],
-            [0, back - thickness],
-            [width - thickness, mid], [width - thickness, front],
-            [width, front], [width, mid]];
+    let mid = -0.2;
+    let back = 0.1;
+
+    let vertices = [[0, back],
+                    [-width, mid], [-width, front],
+                    [-width + thickness, front], [-width + thickness, mid],
+                    [0, back - thickness],
+                    [width - thickness, mid], [width - thickness, front],
+                    [width, front], [width, mid]];
+    return _.map(vertices, ([x, y]) => [-y, x]);
 })();
 
-Crafty.c('Hook', {
+Crafty.c('HookGraphic', {
     required: 'Shape',
     init () {
+        this.z = 15;
         this.shape(hookModel);
         this.color('#666666');
     },
+});
+
+Crafty.c('NodeGraphic', {
+    required: 'Shape',
+    init () {
+        let size = 0.3;
+        this.shape([[-size, -size], [size, -size], [size, size], [-size, size]]);
+        this.color('#1d63ff');
+        this.z = 10;
+    },
+});
+
+let boundingRect = function (r1, r2) {
+    let margin = 30;
+    let [x1, y1] = center(r1);
+    let [x2, y2] = center(r2);
+
+    if (x1 > x2) {
+        [x1, x2] = [x2, x1];
+    }
+    if (y1 > y2) {
+        [y1, y2] = [y2, y1];
+    }
+    return {x: x1 - margin,
+            y: y1 - margin,
+            w: x2 - x1 + 2*margin,
+            h: y2 - y1 + 2*margin};
+};
+
+Crafty.c('PathGraphic', {
+    required: '2D, Canvas',
+    init () {
+        this._pathColor = '#000000';
+        this._pathWidth = 5;
+
+        this.ready = true;
+        this.bind('Draw', this._drawPath);
+        this.trigger('Invalidate');
+    },
+    path (from, to) {
+        this._fromNode = from;
+        this._toNode = to;
+
+        this._fromNode.requires('2D').bind('Move', e => this.recalculate());
+        this._toNode.requires('2D').bind('Move', e => this.recalculate());
+
+        this.recalculate();
+        this.trigger('Invalidate');
+        return this;
+    },
+    color (color) {
+        this._pathColor = color;
+        this.trigger('Invalidate');
+        return this;
+    },
+    thickness (thickness) {
+        this._pathWidth = thickness;
+        return this;
+    },
+    recalculate () {
+        this.attr(boundingRect(this._fromNode, this._toNode));
+        this.trigger('Invalidate');
+        return this;
+    },
+    _drawPath ({ctx, pos, co}) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.strokeStyle = this._pathColor;
+        ctx.lineWidth = this._pathWidth;
+        ctx.moveTo(...center(this._fromNode));
+        ctx.lineTo(...center(this._toNode));
+        ctx.stroke();
+        ctx.restore();
+    }
 });
