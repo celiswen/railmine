@@ -25,8 +25,9 @@ const createInfoWidget = function (entity, iconType) {
         .attr({x: 0, y: 0, w: 50, h: 50});
 
     let text = Crafty.e('2D, Canvas, Text')
-        .attr({x: 55, y: 5, w: 100, h: 50})
-        .textFont({family: 'Arial Black', size: '25px'})
+        .attr({x: 55, y: 10, w: 100, h: 50, z: 50})
+        .textColor('#525252')
+        .textFont({family: 'XoloniumBold', size: '25px'})
         .text('');
 
     entity._icon = icon;
@@ -53,7 +54,7 @@ Crafty.c('TimerGoal', {
             this.remaining -= 1;
         }, 1000, this.remaining, () => {
             this._timeout = true;
-            Crafty.trigger('Timeout');
+            Crafty.trigger('LevelFail');
         });
         return this;
     },

@@ -17,6 +17,8 @@ exports.center = e => [e.x + e.w/2, e.y + e.h/2];
 
 exports.capitalize = str => str[0].toUpperCase() + str.slice(1);
 
+exports.clone = obj => JSON.parse(JSON.stringify(obj));
+
 const vec2 = exports.vec2 = {
     add (v1, v2) {
         let [x1, y1] = vec2.coercion(v1);

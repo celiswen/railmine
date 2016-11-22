@@ -1,0 +1,103 @@
+{
+    "meta": {
+        "level": 1,
+        "name": "level1"
+    },
+    "goal": {
+        "timer": {"second": 20},
+        "items": [
+            {"color": "red", "type": "ruby", "amount": 5},
+        ]
+    },
+    "player": {
+        "ship": {"accelerator": 200, "brake": -10, "speedLimit": 200},
+        "hook": {"launchSpeed": 250, "reachLimit": 250}
+    },
+    "map": {
+        "nodes": {
+            "A": [ 0, 0 ],
+            "B": [ 400, 0 ],
+            "C": [ 800, -350 ],
+            "D": [ 800, 350 ],
+            "E": [ 1500, -350 ],
+            "F": [ 1500, 350 ],
+            "G": [ 1900, 0 ],
+            "H": [ 2300, 0 ],
+        },
+        "paths": {
+            "A": [ "B" ],
+            "B": [ "C", "D" ],
+            "C": [ "E", "F" ],
+            "D": [ "F", "E" ],
+            "E": [ "G" ],
+            "F": [ "G" ],
+            "G": [ "H" ],
+            "H": [],
+        },
+        "switchs": {
+        },
+        "start": [ "A" ],
+        "end": [ "H" ],
+        "ores": [
+            {
+                "size": 1.5, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 400, "y": -120 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 700, "y": -400 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 770, "y": 220 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 620, "y": 370 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 1100, "y": 410 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 1220, "y": 250 }
+            },
+
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 88, "y": 70 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 842, "y": -172 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 1195, "y": -234 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 1407, "y": -466 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 1602, "y": -142 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 1948, "y": -122 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 2184, "y": 98 }
+            },
+            {
+                "size": 1.2, "weight": 0.5, "value": 1, "color": "red", "type": "ruby",
+                "at": { "x": 1725, "y": 288 }
+            }
+        ],
+        "sentinels": [
+        ]
+    }
+}

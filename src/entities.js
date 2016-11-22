@@ -31,7 +31,7 @@ const advance = function ({node, next, offset}, step) {
 };
 
 Crafty.c('Node', {
-    required: '2D',
+    required: '2D, Delay, Keyboard',
     _activePath: '#000000',
     _inactivePath: '#666666',
     init () {
@@ -47,6 +47,23 @@ Crafty.c('Node', {
         this._updateGraphics();
 
         this.bind('SwitchPath', this.switchPath);
+    },
+    node ({type, interval = 2000} = {type: 'manual'}) {
+        if (type === 'manual') {
+            this._nodeGraphic.color('#937ded');
+            this.bind('KeyDown', e => {
+                if (e.key === Crafty.keys.S) {
+                    this.switchPath();
+                }
+            });
+        } else if (type === 'periodical') {
+            this.delay(() => {
+                this.switchPath();
+            }, interval, -1);
+        } else {
+            assert(false);
+        }
+        return this;
     },
     connect (nextNode) {
         expect(nextNode).to.be.not.equal(this);
@@ -146,7 +163,7 @@ Crafty.c('Ship', {
         this._move(step);
         this._alignTrack();
         if (this._hasStopped()) {
-            Crafty.trigger('ShipStop');
+            Crafty.trigger('ReachEndNode');
         }
     },
 
@@ -279,7 +296,7 @@ Crafty.c('Ore', {
     events: {
         HitOn (hits) {
             let {obj: hook} = hits[0];
-            if (hook._oreGrabbed) return;
+            if (hook._oreGrabbed || hook._hookState === -1) return;
 
             hook.attach(this);
             hook._hookState = -1;
@@ -305,7 +322,7 @@ const sentinelHitBox = function () {
 };
 
 Crafty.c('Sentinel', {
-    required: 'Motion, AngularMotion, SentinelGraphic, Collision, SolidHitBox',
+    required: 'Motion, AngularMotion, SentinelGraphic, Collision',
     init () {
     },
     sentinel ({detectRange, speed}) {
@@ -338,7 +355,7 @@ Crafty.c('Sentinel', {
             let {obj} = hits[0];
 
             if (obj.has('Ship')) {
-                Crafty.trigger('GameOver');
+                Crafty.trigger('LevelFail');
                 this.destroy();
             } else if (obj.has('Hook')) {
                 if (obj._hookState != 1) return;
